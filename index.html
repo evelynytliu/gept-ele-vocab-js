@@ -274,25 +274,46 @@ document.addEventListener("keydown", function(event) {
 // 題庫 JSON 載入
 document.getElementById("dataset").addEventListener("change", async function(e) {
   const file = e.target.value;
+  console.log("正在載入題庫：" + file);
   try {
     const res = await fetch(file);
+    if (!res.ok) {
+      throw new Error(`HTTP 錯誤，狀態碼：${res.status}`);
+    }
     data = await res.json();
-    console.log("題庫載入成功：" + file);
+    console.log("題庫載入成功，資料筆數：" + data.length);
+    questionSet = shuffle([...data]);
+    currentIndex = 0;
+    updateProgressBar();
+    if (document.querySelector(".quiz").style.display === "block") {
+      renderQuestion();
+    }
   } catch (err) {
+    console.error("載入題庫失敗：" + err.message);
     alert("載入題庫失敗，將使用預設題庫。");
     data = [...defaultData];
+    questionSet = shuffle([...data]);
+    currentIndex = 0;
+    updateProgressBar();
   }
 });
 
 // 啟動時預先載入預設題庫
 (async () => {
   const file = document.getElementById("dataset").value;
+  console.log("初始載入題庫：" + file);
   try {
     const res = await fetch(file);
+    if (!res.ok) {
+      throw new Error(`HTTP 錯誤，狀態碼：${res.status}`);
+    }
     data = await res.json();
-  } catch {
+    console.log("初始題庫載入成功，資料筆數：" + data.length);
+  } catch (err) {
+    console.error("初始載入題庫失敗：" + err.message);
     data = [...defaultData];
   }
+  questionSet = shuffle([...data]);
 })();
 
 </script>
