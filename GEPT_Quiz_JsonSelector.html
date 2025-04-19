@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GEPT 單字挑戰</title>
+  <style>
+    body { font-family: sans-serif; padding: 30px; background: #f5f5f5; max-width: 700px; margin: auto; }
+    h1 { text-align: center; }
+    .progress-container { height: 16px; background: #ccc; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(to right, #00c6ff, #0072ff); transition: width 0.3s ease-in-out; }
+    .question { font-size: 1.5em; margin: 1em 0; text-align: center; }
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .options button {
+      padding: 12px; font-size: 1.1em; font-weight: bold;
+      border: none; border-radius: 20px;
+      background: #e0e5ec; cursor: pointer;
+    }
+    .options button:hover { background: #d0d7de; }
+    .result-log { margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>GEPT 單字挑戰</h1>
+
+  <div style="text-align: center; margin-bottom: 20px;">
+    <label for="dataset">選擇題庫：</label>
+    <select id="dataset" onchange="loadDataset()" style="padding: 6px 10px; font-size: 1em;">
+      <option value="week1.json">🟡 Week 1</option>
+      <option value="gept-full.json">🔵 全 GEPT</option>
+    </select>
+  </div>
+
+  <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="quiz">
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <ul class="result-log" id="results"></ul>
+  </div>
+
+  <script>
+    let selectedVoice = null;
+    let questionSet = [];
+    let currentIndex = 0;
+    let data = [];
+
+    function findEnglishVoice() {
+      const voices = speechSynthesis.getVoices();
+      const priority = ['Google US English', 'Samantha', 'Microsoft Aria Online (Natural)', 'Microsoft Zira', 'Microsoft David'];
+      for (const name of priority) {
+        const match = voices.find(v => v.name.includes(name));
+        if (match) return match;
+      }
+      return voices.find(v => v.lang === 'en-US') || voices[0];
+    }
+
+    speechSynthesis.onvoiceschanged = () => {
+      selectedVoice = findEnglishVoice();
+    };
+
+    function speakWord(text) {
+      speechSynthesis.cancel();
+      if (!selectedVoice) selectedVoice = findEnglishVoice();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = selectedVoice;
+      utter.lang = 'en-US';
+      utter.rate = 0.9;
+      speechSynthesis.speak(utter);
+    }
+
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
+    }
+
+    function updateProgressBar() {
+      const percent = (currentIndex / questionSet.length) * 100;
+      document.getElementById("progress-bar").style.width = percent + "%";
+    }
+
+    function renderQuestion() {
+      if (currentIndex >= questionSet.length) {
+        document.querySelector(".quiz").innerHTML = "<h2>🎉 恭喜完成本次挑戰！</h2>";
+        return;
+      }
+
+      updateProgressBar();
+      const q = questionSet[currentIndex];
+      document.getElementById("question").innerText = `"${q.Vocabulary}" 是什麼意思？`;
+      speakWord(q.Vocabulary);
+
+      const distractors = shuffle(data.filter(item => item !== q)).slice(0, 3);
+      const choices = shuffle([...distractors, q]);
+
+      const container = document.getElementById("options");
+      container.innerHTML = "";
+
+      choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.innerText = choice.Chinese;
+        btn.onclick = () => handleChoice(btn, choice, q.Chinese);
+        container.appendChild(btn);
+      });
+    }
+
+    function handleChoice(button, choice, correctAnswer) {
+      if (choice.Chinese === correctAnswer) {
+        button.style.background = "#c0f2c0";
+        document.querySelectorAll(".options button").forEach(btn => btn.disabled = true);
+        document.getElementById("results").innerHTML += `<li>✅ ${questionSet[currentIndex].Vocabulary}</li>`;
+        setTimeout(() => {
+          currentIndex++;
+          renderQuestion();
+        }, 300);
+      } else {
+        button.style.background = "#f8d7da";
+        button.disabled = true;
+      }
+    }
+
+    async function loadDataset() {
+      const file = document.getElementById("dataset").value;
+      const res = await fetch(file);
+      data = await res.json();
+      currentIndex = 0;
+      questionSet = file.includes("week1") ? [...data] : shuffle(data).slice(0, 10);
+      document.getElementById("results").innerHTML = "";
+      renderQuestion();
+    }
+
+    // 自動載入預設資料
+    loadDataset();
+  </script>
+</body>
+</html>
