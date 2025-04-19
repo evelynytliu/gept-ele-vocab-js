@@ -35,8 +35,7 @@
   <div style="text-align:center; margin: 10px 0;">
     <label for="username">請輸入名字：</label>
     <input type="text" id="username" placeholder="例如：April" style="padding: 6px 10px; font-size: 1em;" />
-  </div>
-  <div style="text-align:center; margin: 10px 0;">
+    <div style="text-align:center; margin: 10px 0;">
     <button onclick="startQuiz()" style="padding: 10px 20px; font-size: 1.1em; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">開始挑戰</button>
   </div>
   </div>
@@ -144,9 +143,9 @@
     let selectedDatasetFile = "week1.json";
 loadDataset(selectedDatasetFile);
 
-document.getElementById("dataset").addEventListener("change", (e) => {
-  selectedDatasetFile = e.target.value;
-  loadDataset(selectedDatasetFile);
+document.getElementById("dataset").addEventListener("change", async (e) => {
+  const file = e.target.value;
+  await loadDataset(file);
 });
 
 async function loadDataset(file) {
@@ -158,8 +157,9 @@ function startQuiz() {
   const name = document.getElementById("username").value.trim() || "玩家";
   document.getElementById("result-title").innerText = name + " 的挑戰紀錄：";
   document.querySelector(".quiz").style.display = "block";
+  const selectedFile = document.getElementById("dataset").value;
   currentIndex = 0;
-  questionSet = selectedDatasetFile.includes("week1") ? [...data] : shuffle(data).slice(0, 10);
+  questionSet = selectedFile.includes("week1") ? shuffle([...data]) : shuffle(data).slice(0, 10);
   document.getElementById("results").innerHTML = "";
   renderQuestion();
 }
